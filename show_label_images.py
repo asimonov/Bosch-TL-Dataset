@@ -18,12 +18,13 @@ def ir(some_value):
     return int(round(some_value))
 
 
-def show_label_images(input_yaml, output_folder=None):
+def show_label_images(input_yaml, wait_ms=10, output_folder=None):
     """
     Shows and draws pictures with labeled traffic lights.
     Can save pictures.
 
     :param input_yaml: Path to yaml file
+    :param wait_ms: wait time in milliseconds before OpenCV shows next image
     :param output_folder: If None, do not save picture. Else enter path to folder
     """
     images = get_all_labels(input_yaml)
@@ -56,4 +57,5 @@ if __name__ == '__main__':
         sys.exit(-1)
     label_file = sys.argv[1]
     output_folder = None if len(sys.argv) < 3 else sys.argv[2]
-    show_label_images(label_file, output_folder)
+    wait_ms = 100
+    show_label_images(label_file, wait_ms=wait_ms, output_folder=output_folder)
