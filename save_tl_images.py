@@ -49,6 +49,9 @@ def save_tl_images(input_yaml, output_folder):
                                     str(j).zfill(6) + '_' + label.lower() + '.png')
             #print("{}: {}".format(i, filename))
             cv2.imwrite(filename, roi)
+            if os.stat(filename).st_size==0:
+              os.remove(filename)
+              print("saved file is zero size, deleting: {} {}".format(i, filename))
             j += 1
 
 
