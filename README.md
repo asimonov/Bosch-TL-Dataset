@@ -1,14 +1,15 @@
 ﻿
-## Traffic Lights Detection and Classification Dataset
+## Traffic Lights Detection and Classification
+
 
 This is a fork of original Bosch code, modified by Kung Fu Panda team to
 use in Udacity Self-Driving Car Engineer Nanodegree Capstone project.
 
-## Bosch Small Traffic Lights Dataset
+## Setup
 
-The dataset can be downloaded [here](https://hci.iwr.uni-heidelberg.de/node/6132).
+The Bosch Small Traffic Lights Dataset
+can be downloaded [here](https://hci.iwr.uni-heidelberg.de/node/6132).
 
-Getting and extracting the data:
 * Please only download `rgb` named archives.
 * Put the files in `data` folder.
 * Concatenate multi-part zip archives like `cat x.zip.001 x.zip.002 > z.zip`
@@ -39,9 +40,48 @@ data
 ```
 
 You can verify/view the data using:
-```python
+```bash
 python dataset_stats.py data/train.yaml
 python show_label_images.py data/train.yaml
 ```
 
+## Extracting Traffic Light Images from Annotated Pictures
 
+In order to train a classifier we created a script to
+extract and save actual traffic lights images into
+separate folders. You can do the extraction as follows:
+
+```bash
+python save_tl_images.py data/train.yaml data/tl-extract-train
+```
+
+You may see the following warnings:
+
+```
+libpng warning: Image width is zero in IHDR
+libpng error: Invalid IHDR data
+```
+
+Please ignore them. The saved pictures are valid and usable.
+
+The resulting images (of variable sizes) are saved with the following
+naming convention, i.e. sequential number padded to 6 digits
+then lower-case name of the class.
+
+```
+-rw-r--r--      1 alexeysimonov  staff     177 27 Aug 15:55 000001_yellow.png
+-rw-r--r--      1 alexeysimonov  staff     188 27 Aug 15:55 000002_yellow.png
+-rw-r--r--      1 alexeysimonov  staff     245 27 Aug 15:55 000003_yellow.png
+-rw-r--r--      1 alexeysimonov  staff     159 27 Aug 15:55 000004_redleft.png
+-rw-r--r--      1 alexeysimonov  staff     200 27 Aug 15:55 000005_red.png
+-rw-r--r--      1 alexeysimonov  staff     257 27 Aug 15:55 000006_red.png
+-rw-r--r--      1 alexeysimonov  staff     228 27 Aug 15:55 000007_redleft.png
+-rw-r--r--      1 alexeysimonov  staff     265 27 Aug 15:55 000008_red.png
+-rw-r--r--      1 alexeysimonov  staff     220 27 Aug 15:55 000009_red.png
+-rw-r--r--      1 alexeysimonov  staff     329 27 Aug 15:55 000010_red.png
+-rw-r--r--      1 alexeysimonov  staff     199 27 Aug 15:55 000011_redleft.png
+-rw-r--r--      1 alexeysimonov  staff     352 27 Aug 15:55 000012_red.png
+-rw-r--r--      1 alexeysimonov  staff     195 27 Aug 15:55 000013_redleft.png
+-rw-r--r--      1 alexeysimonov  staff     307 27 Aug 15:55 000014_red.png
+-rw-r--r--      1 alexeysimonov  staff     244 27 Aug 15:55 000015_red.png
+```
