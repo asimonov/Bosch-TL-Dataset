@@ -35,3 +35,4 @@ def load_tl_extracts(data_dirs, desired_dim=(32,32)):
       labels.append(label)
   return np.array(imgs), np.array(labels)
 
+
