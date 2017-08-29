@@ -50,6 +50,7 @@ class TLClassifierCNN:
     # transform input
     self._images_float = None
     self._images_std = None
+    self._labels_float = None
     # layer setup
     # Layer 1
     self._kernel1 = None
@@ -116,10 +117,11 @@ class TLClassifierCNN:
     self._global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
     # placeholders
     self._images = tf.placeholder(tf.uint8, shape=features_shape, name='images')
-    self._labels = tf.placeholder(tf.float32, name='labels')
+    self._labels = tf.placeholder(tf.uint8, name='labels')
     # convert type and standardise image to [0,1] values
     self._images_float = tf.image.convert_image_dtype(self._images, tf.float32)
     self._images_std = tf.map_fn(lambda img: tf.image.per_image_standardization(img), self._images_float)
+    self._labels_float = tf.cast(self._labels, tf.float32)
     # layer 1
     k1_params = [self._L1_kernel_size, self._L1_kernel_size, features_shape[3], self._L1_out_channels]
     self._kernel1 = tf.Variable(tf.truncated_normal(k1_params, stddev=self._trunc_normal_stddev), name='L1_kernel')
@@ -175,7 +177,7 @@ class TLClassifierCNN:
     # Cross entropy
     self._cross_entropy = tf.reduce_mean(
                             -tf.reduce_sum(
-                              self._labels * tf.log(tf.clip_by_value(self._prediction, 1e-10, 1.0)),
+                              self._labels_float * tf.log(tf.clip_by_value(self._prediction, 1e-10, 1.0)),
                               reduction_indices=[1]))
     tf.summary.scalar('xentropy', self._cross_entropy)
     # training loss
