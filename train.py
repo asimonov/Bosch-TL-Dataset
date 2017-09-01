@@ -6,7 +6,7 @@ from tl_classifier_cnn import TLClassifierCNN, TLLabelConverter
 
 # load data
 desired_dim = (32,32)
-data_dirs = ['data/tl-extract-train', 'data/tl-extract-test', 'data/tl-extract-additional']
+data_dirs = ['data/tl-extract-train', 'data/tl-extract-additional']
 x, y = load_tl_extracts(data_dirs, desired_dim)
 # x is image in OpenCV imread format. pixels are uint8 from 0 to 255. shape is H, W, C. C is ordered BGR
 # y here are strings like 'green' etc
@@ -29,9 +29,9 @@ save_file = 'ckpt/model.ckpt'
 summary_dir = 'train_summaries'
 tlc = TLClassifierCNN(features_shape, labels_shape, save_file, summary_dir)
 
-epochs = 2
+epochs = 50
 batch_size = 150
-max_iterations_without_improvement = 5
+max_iterations_without_improvement = 10
 dropout_keep_probability=0.7
 
 tlc.restore_checkpoint()
