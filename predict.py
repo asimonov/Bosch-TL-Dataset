@@ -29,7 +29,7 @@ batch_size = 50
 labels, probs = tlc.predict(x, batch_size=batch_size)
 
 correct = sum([1 if y[i]==labels[i] else 0 for i in range(len(y))])
-accuracy = correct / len(y)
+accuracy = float(correct) / len(y)
 
 print('accuracy: {}. correct {} out of {}'.format(accuracy, correct, len(y)))
 

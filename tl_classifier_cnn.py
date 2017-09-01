@@ -155,7 +155,7 @@ class TLClassifierCNN:
       tf.summary.histogram('dropout', dropout)
       # fc
       output_dim = self._labels_shape[1]
-      init_range = math.sqrt(6.0 / (dim + output_dim)) # Xavier init
+      init_range = math.sqrt(float(6.0) / (dim + output_dim)) # Xavier init
       weights = tf.Variable(tf.random_uniform([dim, output_dim], -init_range, init_range), name='weights')
       tf.summary.histogram('weights', weights)
       #self.variable_summaries(weights)
@@ -203,7 +203,7 @@ class TLClassifierCNN:
 
   def _create_session(self, gpu_mem_fraction=0.9):
     # GPU config
-    config = tf.ConfigProto(log_device_placement=True)
+    config = tf.ConfigProto(log_device_placement=False)
     config.gpu_options.allow_growth = True
     config.gpu_options.per_process_gpu_memory_fraction = gpu_mem_fraction
     # session
@@ -303,6 +303,29 @@ class TLClassifierCNN:
     else:
       validation_labels = None
 
+    ####################
+    # code to visualize the embeddings. uncomment the below to visualize embeddings
+    # final_embed_matrix = sess.run(model.embed_matrix)
+
+    # # it has to variable. constants don't work here. you can't reuse model.embed_matrix
+    # embedding_var = tf.Variable(final_embed_matrix[:1000], name='embedding')
+    # sess.run(embedding_var.initializer)
+
+    # config = projector.ProjectorConfig()
+    # summary_writer = tf.summary.FileWriter('processed')
+
+    # # add embedding to the config file
+    # embedding = config.embeddings.add()
+    # embedding.tensor_name = embedding_var.name
+
+    # # link this tensor to its metadata file, in this case the first 500 words of vocab
+    # embedding.metadata_path = 'processed/vocab_1000.tsv'
+
+    # # saves a configuration file that TensorBoard will read during startup.
+    # projector.visualize_embeddings(summary_writer, config)
+    # saver_embed = tf.train.Saver([embedding_var])
+    # saver_embed.save(sess, 'processed/model3.ckpt', 1)
+
     step = self._global_step.eval(session=self._session)
     if step>0:
       print("continuing training after {} steps done previously".format(step))
@@ -314,7 +337,7 @@ class TLClassifierCNN:
       train_images = train_images[perm_index, :, :, :]
       train_labels = train_labels[perm_index]
       # running optimization in batches of training set
-      n_batches = int(math.ceil(n_samples / batch_size))
+      n_batches = int(math.ceil(float(n_samples) / batch_size))
       batches_pbar = tqdm(range(n_batches), desc='Train Epoch {:>2}/{}'.format(epoch_i + 1, epochs), unit='batches')
       for batch_i in batches_pbar:
         batch_start = batch_i * batch_size
@@ -335,7 +358,7 @@ class TLClassifierCNN:
         validation_labels = train_labels
 
       # validation accuracy
-      n_batches = int(math.ceil(len(validation_images) / batch_size))
+      n_batches = int(math.ceil(float(len(validation_images)) / batch_size))
       batches_pbar = tqdm(range(n_batches), desc='Accuracy Epoch {:>2}/{}'.format(epoch_i + 1, epochs), unit='batches')
       a = 0.
       l = 0.
@@ -347,10 +370,10 @@ class TLClassifierCNN:
                                feed_dict={self._images: batch_images,
                                           self._labels: batch_labels,
                                           self._keep_prob: 1.0})
-        a += a_ * len(batch_images)
-        l += l_ * len(batch_images)
-      validation_accuracy = a / len(validation_images)
-      validation_loss = l / len(validation_images)
+        a += float(a_) * len(batch_images)
+        l += float(l_) * len(batch_images)
+      validation_accuracy = float(a) / len(validation_images)
+      validation_loss = float(l) / len(validation_images)
       print('epoch {}: val accuracy {}, val loss {}'.format(epoch_i, validation_accuracy, validation_loss))
       if validation_accuracy > best_validation_accuracy:
         best_validation_accuracy = validation_accuracy
@@ -381,7 +404,7 @@ class TLClassifierCNN:
     """
     predicted_probabilities = []
     predicted_classes = []
-    n_batches = int(math.ceil(len(images) / batch_size))
+    n_batches = int(math.ceil(float(len(images)) / batch_size))
     for batch_i in range(n_batches):
       batch_start = batch_i * batch_size
       ops = [self._prediction_softmax, self._prediction_class]

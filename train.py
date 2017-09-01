@@ -29,7 +29,7 @@ save_file = 'ckpt/model.ckpt'
 summary_dir = 'train_summaries'
 tlc = TLClassifierCNN(features_shape, labels_shape, save_file, summary_dir)
 
-epochs = 50
+epochs = 3
 batch_size = 150
 max_iterations_without_improvement = 10
 dropout_keep_probability=0.7
