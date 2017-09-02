@@ -209,7 +209,7 @@ class TLClassifierCNN:
     # session
     self._session = tf.Session(config=config)
 
-  def __init__(self, features_shape=None, labels_shape=None, learning_rate=None):
+  def __init__(self, image_shape=None, learning_rate=None):
     """
     Create calculation graph
 
@@ -239,11 +239,9 @@ class TLClassifierCNN:
     # reset graph
     tf.reset_default_graph()
     self._tag = 'tl_classifier'
-    #model_graph = tf.Graph()
-    #with model_graph.as_default()
     # inputs
-    self._features_shape = features_shape
-    self._labels_shape = labels_shape
+    self._features_shape = (None,)+image_shape
+    self._labels_shape = (None, len(self._label_converter.labels()))
     # model
     self._create_inputs()
     self._create_input_transforms()

@@ -17,10 +17,9 @@ x, y = converter.filter(x, y)
 
 
 
-features_shape = (None,32,32,3)
-labels_shape = (None, 4)
+image_shape = x[0].shape
 
-tlc = TLClassifierCNN(features_shape, labels_shape)
+tlc = TLClassifierCNN(image_shape)
 #checkpoint_dir = 'ckpt/model.ckpt'
 #tlc.restore_checkpoint(checkpoint_dir)
 model_dir = 'model'
