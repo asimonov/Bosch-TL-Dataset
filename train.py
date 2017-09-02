@@ -25,16 +25,16 @@ train_features, val_features, train_labels, val_labels = \
 
 features_shape = ((None,) + train_features.shape[1:])
 labels_shape = ((None,) + converter.get_shape())
-save_file = 'ckpt/model.ckpt'
-summary_dir = 'train_summaries'
-tlc = TLClassifierCNN(features_shape, labels_shape, save_file, summary_dir)
+tlc = TLClassifierCNN(features_shape, labels_shape)
 
 epochs = 3
-batch_size = 150
+batch_size = 100
 max_iterations_without_improvement = 10
 dropout_keep_probability=0.7
+checkpoint_dir = 'ckpt/model.ckpt'
+summary_dir = 'summaries'
 
-tlc.restore_checkpoint()
+tlc.restore_checkpoint(checkpoint_dir)
 
 # main training
 best_validation_accuracy = \
@@ -45,6 +45,11 @@ best_validation_accuracy = \
               dropout_keep_probability = dropout_keep_probability,
               batch_size               = batch_size,
               epochs                   = epochs,
-              max_iterations_without_improvement = max_iterations_without_improvement)
+              max_iterations_without_improvement = max_iterations_without_improvement,
+              checkpoint_dir           = checkpoint_dir,
+              summary_dir              = summary_dir)
+
+model_dir = 'model'
+tlc.save_model(model_dir)
 
 tlc.close_session()

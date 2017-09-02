@@ -19,10 +19,13 @@ x, y = converter.filter(x, y)
 
 features_shape = (None,32,32,3)
 labels_shape = (None, 4)
-save_file = 'ckpt/model.ckpt'
 
-tlc = TLClassifierCNN(features_shape, labels_shape, save_file)
-tlc.restore_checkpoint()
+tlc = TLClassifierCNN(features_shape, labels_shape)
+#checkpoint_dir = 'ckpt/model.ckpt'
+#tlc.restore_checkpoint(checkpoint_dir)
+model_dir = 'model'
+tlc.load_model(model_dir)
+
 
 batch_size = 50
 

@@ -209,7 +209,7 @@ class TLClassifierCNN:
     # session
     self._session = tf.Session(config=config)
 
-  def __init__(self, features_shape=None, labels_shape=None, save_file=None, summary_dir=None, learning_rate=None):
+  def __init__(self, features_shape=None, labels_shape=None, learning_rate=None):
     """
     Create calculation graph
 
@@ -234,7 +234,13 @@ class TLClassifierCNN:
         predict
         close_session
     """
+    # label converter
+    self._label_converter = TLLabelConverter()
+    # reset graph
     tf.reset_default_graph()
+    self._tag = 'tl_classifier'
+    #model_graph = tf.Graph()
+    #with model_graph.as_default()
     # inputs
     self._features_shape = features_shape
     self._labels_shape = labels_shape
@@ -251,28 +257,47 @@ class TLClassifierCNN:
     self._learning_rate = learning_rate
     self._create_optimizer()
     # auxiliary objects
-    self._save_file = save_file
-    self._saver = tf.train.Saver() # by default saves all variables
     self._summaries = tf.summary.merge_all()
-    if summary_dir is not None:
-      self._summary_dir = summary_dir
-      self._summary_writer = tf.summary.FileWriter(self._summary_dir, graph=tf.get_default_graph())
     # session
     self._create_session(0.9) # gpu mem fraction to use
     self._session.run(tf.global_variables_initializer())
-    # label converter
-    self._label_converter = TLLabelConverter()
 
-  def restore_checkpoint(self):
+  def save_model(self, model_dir):
     if self._session is not None:
-      ckpt = tf.train.get_checkpoint_state(os.path.dirname(self._save_file))
+      print('saving SavedModel into {}'.format(model_dir))
+      builder = tf.saved_model.builder.SavedModelBuilder(model_dir)
+      builder.add_meta_graph_and_variables(self._session, [self._tag])
+      builder.save()
+
+  def load_model(self, model_dir):
+    if self._session is not None:
+      self._session.close()
+      self._session = None
+    tf.reset_default_graph()
+    self._create_session(0.9)
+    tf.saved_model.loader.load(self._session, [self._tag], model_dir)
+    # the ops we need to re-assign to instance variables for prediction
+    graph = tf.get_default_graph()
+    self._images = graph.get_tensor_by_name("data/images:0")
+    self._keep_prob = graph.get_tensor_by_name("dropout_keep_probability:0")
+    self._prediction_softmax = graph.get_tensor_by_name("predictions/prediction_softmax:0")
+    self._prediction_class = graph.get_tensor_by_name("predictions/prediction_class:0")
+
+  def restore_checkpoint(self, checkpoint_dir):
+    if self._session is not None:
+      ckpt = tf.train.get_checkpoint_state(os.path.dirname(checkpoint_dir))
       # if that checkpoint exists, restore from checkpoint
       if ckpt and ckpt.model_checkpoint_path:
-        self._saver.restore(self._session, ckpt.model_checkpoint_path)
+        saver = tf.train.Saver()
+        saver.restore(self._session, ckpt.model_checkpoint_path)
 
-  def save_checkpoint(self):
-    save_path = self._saver.save(self._session, self._save_file, global_step=self._global_step)
-    return save_path
+  def save_checkpoint(self, checkpoint_dir):
+    if self._session is not None:
+      saver = tf.train.Saver() # by default saves all variables
+      if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
+      save_path = saver.save(self._session, checkpoint_dir, global_step=self._global_step)
+      return save_path
 
   def close_session(self):
     if self._session is not None:
@@ -287,7 +312,9 @@ class TLClassifierCNN:
             dropout_keep_probability=0.5,
             batch_size=150,
             epochs=50,
-            max_iterations_without_improvement=5):
+            max_iterations_without_improvement=5,
+            checkpoint_dir=None,
+            summary_dir=None):
     """
     Run training for specified number of epochs in batches of specified size
     Every time accuracy on validation set improves, save weights
@@ -302,6 +329,9 @@ class TLClassifierCNN:
       validation_labels = self._label_converter.convert_to_oh(validation_labels_str)
     else:
       validation_labels = None
+
+    if summary_dir is not None:
+      summary_writer = tf.summary.FileWriter(summary_dir, graph=tf.get_default_graph())
 
     ####################
     # code to visualize the embeddings. uncomment the below to visualize embeddings
@@ -350,7 +380,7 @@ class TLClassifierCNN:
         # write training summaries every so often
         step = self._global_step.eval(session=self._session)
         if step % 5 == 0:
-          self._summary_writer.add_summary(summaries, global_step=step)
+          summary_writer.add_summary(summaries, global_step=step)
 
       if validation_images is None:
         # use training data to measure validation accuracy
@@ -379,9 +409,10 @@ class TLClassifierCNN:
         best_validation_accuracy = validation_accuracy
         last_improvement_epoch = epoch_i
         # save checkpoint every time accuracy improved during the epoch
-        save_path = self.save_checkpoint()
-        print('validation accuracy improved')
-        print("checkpoint saved to {}".format(save_path))
+        if checkpoint_dir is not None:
+          save_path = self.save_checkpoint(checkpoint_dir)
+          print('validation accuracy improved')
+          print("checkpoint saved to {}".format(save_path))
       else:
         if epoch_i - last_improvement_epoch >= max_iterations_without_improvement:
           print('no validation accuracy improvement over {} epochs. stop'.format(max_iterations_without_improvement))
