@@ -3,20 +3,29 @@
 # Date:   28.08.17
 #-------------------------------------------------------------------------------
 
-"""
-Traffic Lights Classifier using Conv Nets
+"""Traffic Lights Classifier using CNN
 
-Class implementing a multi-class classifier for traffic lights images.
-Inspired by CIFAR-related convolutional neural networks.
-Using pure tensorflow implementation.
-Developed with tensorflow 1.1 (GPU) on python 2.7.13 (conda).
+TLClassifierCNN implements a multi-class classifier for traffic lights images.
+Using convolutional neural net architecture inspired by CIFAR-10.
+Pure tensorflow implementation.
+
+TLLabelConverter is a helper class to convert from string label representation to
+numeric representation for internal handling/training in tensorflow.
+
+Developed with tensorflow 1.1 (GPU) on python 2.7.13 (conda). Tested with python 3.5.
 
 Takes an image of size 32x32 with 3 channels in OpenCV convention (BGR uint8)
 
-Trained on Bosch Small Traffic Lights dataset
+Trained on Bosch Small Traffic Lights dataset.
 
 Todo:
-    *
+    * improve training as it seems to stop improving after handful of epochs.
+      may need truncation of sofmax layer. requires analysis in tensorboard
+    * for training balance the number of examples in different classes. may need augmentation
+    * move to generator-type inputs
+    * use tensorflow Dataset interface
+    * use tensorflow Estimator interface?
+    * add embeddings visualisation to tensorboard
 """
 
 import tensorflow as tf
@@ -29,6 +38,21 @@ from datetime import datetime
 from tf_helpers import *
 
 class TLLabelConverter:
+  """Helper class for converting between 'string', 'integer' and one-hot vector representation of labels
+
+  Can be used standalone, but is used inside TLClassifierCNN as well for returning predictions.
+
+  Examples:
+    x, y = load_tl_extracts(data_dirs, desired_dim)
+    # x is image in OpenCV imread format. pixels are uint8 from 0 to 255. shape is H, W, C. C is ordered BGR
+    # y here are strings like 'green' etc
+    # filter data with only labels relevant for us
+    converter = TLLabelConverter()
+    x, y = converter.filter(x, y)
+
+  Attributes:
+    _relevant_labels: string array, full list of string labels we deal with. Update as needed
+  """
   def __init__(self):
     self._relevant_labels = ['off','green','yellow','red']
     self._n_classes = len(self._relevant_labels)
@@ -41,34 +65,80 @@ class TLLabelConverter:
       self._label_to_oh_dict[l] = [1 if x==i else 0 for x in range(self._n_classes)]
 
   def labels(self):
+    """list of all labels
+    Returns:
+      :return: array of strings
+    """
     return  self._relevant_labels
 
   def get_i(self, l):
+    """return integer label id corresponding to string label
+    Args:
+      :param l: string label
+    Returns:
+      :return: integer
+    """
     return self._label_to_i_dict[l]
 
   def get_l(self, i):
+    """return string label corresponding to integer id
+    Args:
+      :param i: integer label id
+    Returns:
+      :return: string label
+    """
     return self._i_to_label_dict[i]
 
   def get_oh(self, l):
+    """return one-hot encoded vector corresponding to string label
+    Args:
+      :param l: string label
+    Returns:
+      :return: list/vector encoding label in one-hot fashion
+    """
     return self._label_to_oh_dict[l]
 
   def filter(self, images, labels):
+    """filter only examples with labels we know about
+    Args:
+      :param images: numpy array of images
+      :param labels: numpy array of strings
+    Returns:
+      :return: images and labels arrays which are subsets of inputs, but only where labels are in `_relevant_labels`
+    """
     x = images[np.isin(labels, self._relevant_labels)]
     y = labels[np.isin(labels, self._relevant_labels)]
     return x, y
 
   def convert_to_oh(self, labels):
+    """convert list of string labels to corresponding one-hot-encoded representations
+    Args:
+      :param labels: list (or numpy array) of string labels
+    Returns:
+      :return: numpy array of one-hot encodings
+    """
     return np.array([self._label_to_oh_dict[l] for l in labels])
 
   def convert_to_labels(self, classes):
+    """convert list/numpy array of integer class id to corresponding string labels
+    Args:
+      :param classes: list (or numpy array) of label IDs
+    Returns:
+      :return: numpy array of string labels
+    """
     return np.array([self._i_to_label_dict[i] for i in classes])
 
   def get_shape(self):
+    """number of classification labels
+    Returns:
+      :return: tuple with number of classes
+    """
     return (self._n_classes,)
+
+
 
 class TLClassifierCNN:
 
-  #@define_scope(scope='data')
   def _create_inputs(self):
     """ defines input placeholders """
     with tf.name_scope("data"):
@@ -76,7 +146,6 @@ class TLClassifierCNN:
       tf.summary.image('input_images', self._images, 3)
       self._labels = tf.placeholder(tf.uint8, name='labels', shape=self._labels_shape)
 
-  #@define_scope(scope='pre_processing')
   def _create_input_transforms(self):
     """ ops to pre-process inputs. convert type and standardise image to [0,1] values """
     with tf.name_scope("pre_processing"):
@@ -91,17 +160,14 @@ class TLClassifierCNN:
     strides = [1, stride_size, stride_size, 1]
     params = [kernel_size, kernel_size, input_channels, output_channels]
     weights = tf.Variable(tf.truncated_normal(params, stddev=trunc_normal_stddev), name='weights')
-    #self.variable_summaries(weights)
     tf.summary.histogram("weights", weights)
     conv = tf.nn.conv2d(input_op, weights, strides=strides, padding='SAME')
     #tf.summary.histogram('conv', conv)
     biases = tf.Variable(tf.constant(np.ones(output_channels, np.float32) * bias_init), name='biases')
-    #self.variable_summaries(biases)
     tf.summary.histogram("biases", biases)
     result = tf.nn.bias_add(conv, biases)
     return result
 
-  #@define_scope(scope='conv1')
   def _create_layer_1(self):
     """ define first convolutional layer """
     with tf.name_scope("conv1"):
@@ -121,7 +187,6 @@ class TLClassifierCNN:
       #tf.summary.histogram('pooling', pooling)
     return pooling
 
-  #@define_scope(scope='conv2')
   def _create_layer_2(self):
     """ define second convolutional layer """
     with tf.name_scope("conv2"):
@@ -158,11 +223,9 @@ class TLClassifierCNN:
       init_range = math.sqrt(float(6.0) / (dim + output_dim)) # Xavier init
       weights = tf.Variable(tf.random_uniform([dim, output_dim], -init_range, init_range), name='weights')
       tf.summary.histogram('weights', weights)
-      #self.variable_summaries(weights)
       bias_init = 0.1
       biases = tf.Variable(tf.ones(output_dim, np.float32) * bias_init, name='biases')
       tf.summary.histogram('biases', biases)
-      #self.variable_summaries(biases)
       activations = tf.matmul(dropout, weights) + biases
       tf.summary.histogram('activations', activations)
     return activations
