@@ -9,10 +9,11 @@ TLClassifierCNN implements a multi-class classifier for traffic lights images.
 Using convolutional neural net architecture inspired by CIFAR-10.
 Pure tensorflow implementation.
 
-TLLabelConverter is a helper class to convert from string label representation to
-numeric representation for internal handling/training in tensorflow.
+TLLabelConverter is a helper class to convert from string label representation
+to numeric representation for internal handling/training in tensorflow.
 
-Developed with tensorflow 1.1 (GPU) on python 2.7.13 (conda). Tested with python 3.5.
+Developed with tensorflow 1.1 (GPU) on python 2.7.13 (conda).
+Tested with python 3.5.
 
 Takes an image of size 32x32 with 3 channels in OpenCV convention (BGR uint8)
 
@@ -21,7 +22,8 @@ Trained on Bosch Small Traffic Lights dataset.
 Todo:
     * improve training as it seems to stop improving after handful of epochs.
       may need truncation of sofmax layer. requires analysis in tensorboard
-    * for training balance the number of examples in different classes. may need augmentation
+    * for training balance the number of examples in different classes. may
+      need augmentation
     * move to generator-type inputs
     * use tensorflow Dataset interface
     * use tensorflow Estimator interface?
@@ -34,7 +36,7 @@ import os
 import math
 from datetime import datetime
 try:
-  # this is only used in train() method. when run on ROS train() should never be called
+  # only used in train() method. when run on ROS train() should never be called
   from tqdm import tqdm
 except ImportError:
   pass
@@ -42,20 +44,22 @@ except ImportError:
 #from tf_helpers import *
 
 class TLLabelConverter:
-  """Helper class for converting between 'string', 'integer' and one-hot vector representation of labels
+  """Helper class for converting between 'string', 'integer' and one-hot vector
+  representation of labels
 
-  Can be used standalone, but is used inside TLClassifierCNN as well for returning predictions.
+  Can be used standalone, but is used inside TLClassifierCNN as well for
+  returning predictions.
 
   Examples:
     x, y = load_tl_extracts(data_dirs, desired_dim)
-    # x is image in OpenCV imread format. pixels are uint8 from 0 to 255. shape is H, W, C. C is ordered BGR
     # y here are strings like 'green' etc
     # filter data with only labels relevant for us
     converter = TLLabelConverter()
     x, y = converter.filter(x, y)
 
   Attributes:
-    _relevant_labels: string array, full list of string labels we deal with. Update as needed
+    _relevant_labels: string array, full list of string labels we deal with.
+                      Update as needed
   """
   def __init__(self):
     self._relevant_labels = ['off','green','yellow','red']
@@ -108,7 +112,8 @@ class TLLabelConverter:
       :param images: numpy array of images
       :param labels: numpy array of strings
     Returns:
-      :return: images and labels arrays which are subsets of inputs, but only where labels are in `_relevant_labels`
+      :return: images and labels arrays which are subsets of inputs, but only where labels are
+               in `_relevant_labels`
     """
     x = images[np.isin(labels, self._relevant_labels)]
     y = labels[np.isin(labels, self._relevant_labels)]
@@ -146,8 +151,10 @@ class TLClassifierCNN:
 
   Takes batch of OpenCV images of type 32x32x3 BGR uint8.
   Does per-image normalization internally.
-  Inference returns string labels that TLLabelConverter knows about, as well as softmax-probabilities.
-  During training summaries are generated and saved, so you can use tensorboard to monitor the process.
+  Inference returns string labels that TLLabelConverter knows about, as well as
+  softmax-probabilities.
+  During training summaries are generated and saved, so you can use tensorboard to monitor
+  the process.
 
   __init__ creates the tensorflow calculation graph and the session.
   Then you can either
@@ -191,7 +198,8 @@ class TLClassifierCNN:
     """ define image pre-process ops. convert type and standardise image to [0,1] values """
     with tf.name_scope("pre_processing"):
       self._images_float = tf.image.convert_image_dtype(self._images, tf.float32)
-      self._images_std = tf.map_fn(lambda img: tf.image.per_image_standardization(img), self._images_float)
+      self._images_std = tf.map_fn(lambda img: tf.image.per_image_standardization(img),
+                                   self._images_float)
       self._labels_float = tf.cast(self._labels, tf.float32)
 
   def _conv2d(self, input_op, input_channels, output_channels, kernel_size, stride_size):
@@ -204,7 +212,8 @@ class TLClassifierCNN:
     tf.summary.histogram("weights", weights)
     conv = tf.nn.conv2d(input_op, weights, strides=strides, padding='SAME')
     #tf.summary.histogram('conv', conv)
-    biases = tf.Variable(tf.constant(np.ones(output_channels, np.float32) * bias_init), name='biases')
+    biases = tf.Variable(tf.constant(np.ones(output_channels, np.float32) * bias_init),
+                         name='biases')
     tf.summary.histogram("biases", biases)
     result = tf.nn.bias_add(conv, biases)
     return result
@@ -217,7 +226,8 @@ class TLClassifierCNN:
       output_channels = 64
       stride_size = 1
       # conv
-      conv = self._conv2d(self._images_std, input_channels, output_channels, kernel_size, stride_size)
+      conv = self._conv2d(self._images_std, input_channels, output_channels, kernel_size,
+                          stride_size)
       # relu
       activations = tf.nn.relu(conv)
       tf.summary.histogram('activations', activations)
@@ -261,7 +271,8 @@ class TLClassifierCNN:
       # fc
       output_dim = self._labels_shape[1]
       init_range = math.sqrt(float(6.0) / (dim + output_dim)) # Xavier init
-      weights = tf.Variable(tf.random_uniform([dim, output_dim], -init_range, init_range), name='weights')
+      weights = tf.Variable(tf.random_uniform([dim, output_dim], -init_range, init_range),
+                            name='weights')
       tf.summary.histogram('weights', weights)
       bias_init = 0.1
       biases = tf.Variable(tf.ones(output_dim, np.float32) * bias_init, name='biases')
@@ -281,9 +292,10 @@ class TLClassifierCNN:
   def _create_loss(self):
     """ define loss function for training """
     with tf.name_scope("loss"):
-      cross_entropy = tf.negative(tf.reduce_sum(self._labels_float * tf.log(self._prediction_softmax),
-                                                reduction_indices=[1]),
-                                  name="cross_entropy")
+      cross_entropy = tf.negative(
+                        tf.reduce_sum(self._labels_float * tf.log(self._prediction_softmax),
+                                                                  reduction_indices=[1]),
+                        name="cross_entropy")
       self._loss = tf.reduce_mean(cross_entropy, name='loss')
       tf.summary.scalar('loss', self._loss)
 
@@ -300,9 +312,11 @@ class TLClassifierCNN:
     with tf.name_scope("optimizer"):
       self._global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
       if self._learning_rate is not None:
-        self._optimizer = tf.train.AdamOptimizer(self._learning_rate).minimize(self._loss, global_step=self._global_step)
+        self._optimizer = tf.train.AdamOptimizer(self._learning_rate)\
+                          .minimize(self._loss, global_step=self._global_step)
       else:
-        self._optimizer = tf.train.AdamOptimizer().minimize(self._loss, global_step=self._global_step)
+        self._optimizer = tf.train.AdamOptimizer().minimize(self._loss,
+                                                            global_step=self._global_step)
 
   def _create_session(self, gpu_mem_fraction=0.9):
     """ create and configure tensorflow session """
@@ -412,22 +426,22 @@ class TLClassifierCNN:
                                 if None then training set is used for validation
       :param validation_labels_str: numpy array of string labels for validation
       :param dropout_keep_probability: probability for dropout layer
-      :param batch_size: batch size for SGD minibatches. should be chosen based on GPU memory available
+      :param batch_size: batch size for SGD minibatches. should be chosen based on GPU memory
+             available
       :param epochs: number of epochs to run training for
-      :param max_iterations_without_improvement: number of epochs after which to stop training if validation accuracy
-                                                 does not improve
-      :param checkpoint_dir: directory name/file to save checkpoints. checkpoint is saved every epoch when validation
-                             accuracy improves. if None, then checkpoints are not saved.
-      :param summary_dir: directory to save tensorboard summaries to. If None no summaries are saved
+      :param max_iterations_without_improvement: number of epochs after which to stop training if
+                                                 validation accuracy does not improve
+      :param checkpoint_dir: directory name/file to save checkpoints. checkpoint is saved every
+                             epoch when validation accuracy improves. if None, then checkpoints
+                             are not saved.
+      :param summary_dir: directory to save tensorboard summaries to. If None no summaries
+                          are saved
     Returns:
       :return: float, best validation accuracy achieved
     """
     assert(train_images.shape[1:]==self._features_shape[1:])
     if validation_images is not None:
       assert(validation_images.shape[1:]==self._features_shape[1:])
-    best_validation_accuracy = 0.0
-    last_improvement_epoch = 0
-    start_time = datetime.now()
 
     # convert string labels to one-hot-encoded labels
     train_labels = self._label_converter.convert_to_oh(train_labels_str)
@@ -439,6 +453,9 @@ class TLClassifierCNN:
     if summary_dir is not None:
       summary_writer = tf.summary.FileWriter(summary_dir, graph=tf.get_default_graph())
 
+    best_validation_accuracy = 0.0
+    last_improvement_epoch = 0
+    start_time = datetime.now()
     step = self._global_step.eval(session=self._session)
     if step>0:
       print("continuing training after {} steps done previously".format(step))
@@ -450,16 +467,18 @@ class TLClassifierCNN:
       train_labels = train_labels[perm_index]
       # running optimization in batches of training set
       n_batches = int(math.ceil(float(n_samples) / batch_size))
-      batches_pbar = tqdm(range(n_batches), desc='Train Epoch {:>2}/{}'.format(epoch_i + 1, epochs), unit='batches')
+      batches_pbar = tqdm(range(n_batches), desc='Train Epoch {:>2}/{}'.format(epoch_i + 1, epochs),
+                          unit='batches')
       for batch_i in batches_pbar:
         batch_start = batch_i * batch_size
         batch_images = train_images[batch_start:batch_start + batch_size]
         batch_labels = train_labels[batch_start:batch_start + batch_size]
+        feed_dict = {self._images: batch_images,
+                     self._labels: batch_labels,
+                     self._keep_prob: dropout_keep_probability}
         _, loss, summaries = self._session.run([self._optimizer, self._loss, self._summaries],
-                                                feed_dict={self._images: batch_images,
-                                                           self._labels: batch_labels,
-                                                           self._keep_prob: dropout_keep_probability})
-        # write training summaries every so often
+                                                feed_dict=feed_dict)
+        # write training summaries for tensorboard every so often
         step = self._global_step.eval(session=self._session)
         if step % 5 == 0:
           summary_writer.add_summary(summaries, global_step=step)
@@ -469,7 +488,7 @@ class TLClassifierCNN:
         validation_images = train_images
         validation_labels = train_labels
 
-      # validation accuracy
+      # measure validation accuracy every epoch
       n_batches = int(math.ceil(float(len(validation_images)) / batch_size))
       batches_pbar = tqdm(range(n_batches), desc='Accuracy Epoch {:>2}/{}'.format(epoch_i + 1, epochs), unit='batches')
       a = 0.
@@ -479,9 +498,9 @@ class TLClassifierCNN:
         batch_images = validation_images[batch_start:batch_start + batch_size]
         batch_labels = validation_labels[batch_start:batch_start + batch_size]
         a_, l_ = self._session.run([self._accuracy, self._loss],
-                               feed_dict={self._images: batch_images,
-                                          self._labels: batch_labels,
-                                          self._keep_prob: 1.0})
+                                   feed_dict={self._images: batch_images,
+                                              self._labels: batch_labels,
+                                              self._keep_prob: 1.0})
         a += float(a_) * len(batch_images)
         l += float(l_) * len(batch_images)
       validation_accuracy = float(a) / len(validation_images)
@@ -513,7 +532,8 @@ class TLClassifierCNN:
       :param batch_size: mini-batch size for inference
     Returns:
       :return predicted_labels: numpy array of string labels
-      :return predicted_probabilities: numpy array of softmax probabilities vectors, ordered as per TLLabelConverter
+      :return predicted_probabilities: numpy array of softmax probabilities vectors, columns in each
+                                       vector are ordered as per TLLabelConverter
     """
     assert(images.shape[1:]==self._features_shape[1:])
     predicted_probabilities = []
