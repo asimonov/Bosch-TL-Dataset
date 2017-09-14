@@ -1,7 +1,6 @@
 from data_utils import load_tl_extracts
-import numpy as np
+#import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelBinarizer
 from tl_classifier_cnn import TLClassifierCNN, TLLabelConverter
 
 # load data
@@ -22,6 +21,10 @@ random_state = 123
 train_features, val_features, train_labels, val_labels = \
   train_test_split(x, y, train_size = pct_train/100., test_size = pct_valid/100., random_state = random_state)
 
+# define classifier
+tlc = TLClassifierCNN()
+checkpoint_dir = 'ckpt/model.ckpt'
+tlc.restore_checkpoint(checkpoint_dir)
 
 features_shape = ((None,) + train_features.shape[1:])
 labels_shape = ((None,) + converter.get_shape())
@@ -34,10 +37,8 @@ epochs = 50
 batch_size = 250
 max_iterations_without_improvement = 40
 dropout_keep_probability=0.7
+summary_dir = 'summaries'
 
-tlc.restore_checkpoint()
-
-# main training
 best_validation_accuracy = \
     tlc.train(train_images             = train_features,
               train_labels_str         = train_labels,
@@ -46,6 +47,12 @@ best_validation_accuracy = \
               dropout_keep_probability = dropout_keep_probability,
               batch_size               = batch_size,
               epochs                   = epochs,
-              max_iterations_without_improvement = max_iterations_without_improvement)
+              max_iterations_without_improvement = max_iterations_without_improvement,
+              checkpoint_dir           = checkpoint_dir,
+              summary_dir              = summary_dir)
+
+# save trained model
+model_dir = 'model'
+tlc.save_model(model_dir)
 
 tlc.close_session()

@@ -85,3 +85,24 @@ then lower-case name of the class.
 -rw-r--r--      1 alexeysimonov  staff     307 27 Aug 15:55 000014_red.png
 -rw-r--r--      1 alexeysimonov  staff     244 27 Aug 15:55 000015_red.png
 ```
+
+## Train a Classifier
+
+We have defined `TLClassifierCNN` in `tl_classfier_cnn.py`
+loosely based on CIFAR-10 network architecture.
+To train it update training parameters in `train.py` and run
+as follows:
+```bash
+python train.py
+```
+
+It saves checkpoints and summaries as it goes along.
+At the end it saves the model.
+
+## Predictions
+
+`TLClassifierCNN` can load a pre-trained model to run predictions.
+The following script demonstrates the model loading and prediction:
+```bash
+python predict.py
+```

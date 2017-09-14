@@ -1,8 +1,6 @@
 from data_utils import load_tl_extracts
-import numpy as np
-from sklearn.preprocessing import LabelBinarizer
+#import numpy as np
 from tl_classifier_cnn import TLClassifierCNN, TLLabelConverter
-
 
 # load data
 desired_dim = (32,32)
@@ -15,22 +13,18 @@ x, y = load_tl_extracts(data_dirs, desired_dim)
 converter = TLLabelConverter()
 x, y = converter.filter(x, y)
 
+# load the model
+tlc = TLClassifierCNN()
+model_dir = 'model'
+tlc.load_model(model_dir)
 
-
-features_shape = (None,32,32,3)
-labels_shape = (None, 4)
-save_file = 'ckpt/model.ckpt'
-
-tlc = TLClassifierCNN(features_shape, labels_shape, save_file)
-tlc.restore_checkpoint()
-
+# run predictions
 batch_size = 50
-
 labels, probs = tlc.predict(x, batch_size=batch_size)
 
+# calculate accuracy
 correct = sum([1 if y[i]==labels[i] else 0 for i in range(len(y))])
 accuracy = float(correct) / len(y)
-
 print('accuracy: {}. correct {} out of {}'.format(accuracy, correct, len(y)))
 
 tlc.close_session()
