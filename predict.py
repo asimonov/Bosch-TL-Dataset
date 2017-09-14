@@ -18,6 +18,18 @@ tlc = TLClassifierCNN()
 model_dir = 'model'
 tlc.load_model(model_dir)
 
+import cv2
+import numpy as np
+image = cv2.imread('data/tl-extract-test/000001_green.png')
+resized = cv2.resize(image, (32,32), interpolation=cv2.INTER_LINEAR)
+assert (resized.shape == (32, 32, 3))
+labels, probabilities = tlc.predict(np.array([resized]), batch_size=1)
+if labels[0]=='green':
+  print('correct')
+else:
+  print('incorrect')
+
+
 # run predictions
 batch_size = 50
 labels, probs = tlc.predict(x, batch_size=batch_size)
@@ -26,5 +38,7 @@ labels, probs = tlc.predict(x, batch_size=batch_size)
 correct = sum([1 if y[i]==labels[i] else 0 for i in range(len(y))])
 accuracy = float(correct) / len(y)
 print('accuracy: {}. correct {} out of {}'.format(accuracy, correct, len(y)))
+
+
 
 tlc.close_session()
