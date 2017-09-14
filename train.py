@@ -27,11 +27,12 @@ features_shape = ((None,) + train_features.shape[1:])
 labels_shape = ((None,) + converter.get_shape())
 save_file = 'ckpt/model.ckpt'
 summary_dir = 'train_summaries'
-tlc = TLClassifierCNN(features_shape, labels_shape, save_file, summary_dir)
+learning_rate = 0.001
+tlc = TLClassifierCNN(features_shape, labels_shape, save_file, summary_dir, learning_rate=learning_rate)
 
-epochs = 3
-batch_size = 150
-max_iterations_without_improvement = 10
+epochs = 50
+batch_size = 250
+max_iterations_without_improvement = 40
 dropout_keep_probability=0.7
 
 tlc.restore_checkpoint()
