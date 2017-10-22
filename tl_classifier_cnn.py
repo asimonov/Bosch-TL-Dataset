@@ -30,11 +30,14 @@ Todo:
     * add embeddings visualisation to tensorboard
 """
 
-import tensorflow as tf
-import numpy as np
 import os
 import math
 from datetime import datetime
+import shutil
+
+import tensorflow as tf
+from tensorflow.python.framework import graph_util as tf_graph_util
+import numpy as np
 try:
   # only used in train() method. when run on ROS train() should never be called
   from tqdm import tqdm
@@ -359,10 +362,33 @@ class TLClassifierCNN:
   def save_model(self, model_dir):
     """ save trained model using SavedModelBuilder """
     if self._session is not None:
+      # save SavedModel
       print('saving SavedModel into {}'.format(model_dir))
       builder = tf.saved_model.builder.SavedModelBuilder(model_dir)
       builder.add_meta_graph_and_variables(self._session, [self._tag])
       builder.save()
+      # save original Graph
+      graph_def = tf.get_default_graph().as_graph_def()
+      print('saving Graph. {} ops'.format(len(graph_def.node)))
+      with tf.gfile.GFile(model_dir + '/graph.pb', "wb") as f:
+        f.write(graph_def.SerializeToString())
+
+      # freeze graph
+      # use a built-in TF helper to export variables to constants
+      output_node_names = "predictions/prediction_class,predictions/prediction_softmax"
+      output_graph_def = tf_graph_util.convert_variables_to_constants(
+        self._session,
+        graph_def,
+        output_node_names.split(",")
+      )
+      print("{} ops in the frozen graph".format(len(output_graph_def.node)))
+      frozen_file = model_dir + '/frozen_graph.pb'
+      if os.path.exists(frozen_file):
+        shutil.rmtree(frozen_file)
+      print('saving frozen graph to {}'.format(frozen_file))
+      with tf.gfile.GFile(frozen_file, "wb") as f:
+        f.write(output_graph_def.SerializeToString())
+
 
   def load_model(self, model_dir):
     """ load trained model using SavedModelBuilder. can only be used for inference """
