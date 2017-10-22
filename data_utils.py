@@ -30,7 +30,7 @@ def load_tl_extracts(data_dirs, desired_dim=(32,32)):
       fname = os.path.basename(f)
       img = cv2.imread(f)  # this loads in BGR order by default
       label = fname[7:-4]
-      resized = cv2.resize(img, desired_dim, cv2.INTER_LINEAR)
+      resized = cv2.resize(img, desired_dim, interpolation=cv2.INTER_LINEAR)
       imgs.append(resized)
       labels.append(label)
   return np.array(imgs), np.array(labels)

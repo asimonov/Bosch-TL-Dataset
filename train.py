@@ -34,8 +34,8 @@ features_shape = ((None,) + train_features.shape[1:])
 labels_shape = ((None,) + converter.get_shape())
 save_file = 'ckpt/model.ckpt'
 summary_dir = 'train_summaries'
-learning_rate = 0.001
-tlc = TLClassifierCNN(features_shape, labels_shape, save_file, summary_dir, learning_rate=learning_rate)
+learning_rate = 0.0001
+tlc = TLClassifierCNN(learning_rate=learning_rate)
 
 epochs = 50
 batch_size = 250
